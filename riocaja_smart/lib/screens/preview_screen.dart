@@ -23,42 +23,52 @@ class _PreviewScreenState extends State<PreviewScreen> {
     _processImage();
   }
 
-Future<void> _processImage() async {
-  try {
-    setState(() => _isProcessing = true);
-    
-    // Usar el servicio actualizado de OCR
-    final ocrService = OcrService();
-    
-    // Extraer texto de la imagen
-    final extractedText = await ocrService.extractText(widget.imagePath);
-    
-    // Analizar el texto para obtener datos estructurados
-    final receiptData = await ocrService.analyzeReceipt(extractedText);
-    
-    setState(() {
-      _extractedText = extractedText;
+  Future<void> _processImage() async {
+    try {
+      setState(() => _isProcessing = true);
       
-      // Crear el objeto Receipt con los datos extraídos
-      _receipt = Receipt(
-        type: receiptData['type'],
-        number: receiptData['number'],
-        date: receiptData['date'],
-        amount: receiptData['amount'],
-        accountNumber: receiptData['accountNumber'],
-        reference: receiptData['reference'],
-      );
+      // Usar el servicio OCR
+      final ocrService = OcrService();
       
-      _isProcessing = false;
-    });
-  } catch (e) {
-    print('Error processing image: $e');
-    setState(() {
-      _isProcessing = false;
-      _extractedText = 'Error al procesar la imagen: $e';
-    });
+      // Extraer texto de la imagen
+      final extractedText = await ocrService.extractText(widget.imagePath);
+      
+      // Analizar el texto para obtener datos estructurados
+      final receiptData = await ocrService.analyzeReceipt(extractedText);
+      
+      // Extraer campos adicionales para crear el map de additionalFields
+      Map<String, dynamic> additionalFields = {};
+      receiptData.forEach((key, value) {
+        if (!['type', 'transactionNumber', 'date', 'time', 'corresponsal', 'amount', 'fullText'].contains(key)) {
+          additionalFields[key] = value;
+        }
+      });
+      
+      setState(() {
+        _extractedText = extractedText;
+        
+        // Crear el objeto Receipt con los datos extraídos
+        _receipt = Receipt(
+          type: receiptData['type'] ?? 'Desconocido',
+          transactionNumber: receiptData['transactionNumber'] ?? '',
+          date: receiptData['date'] ?? '',
+          time: receiptData['time'] ?? '',
+          corresponsal: receiptData['corresponsal'] ?? '',
+          amount: receiptData['amount'] ?? 0.0,
+          additionalFields: additionalFields,
+          fullText: extractedText,
+        );
+        
+        _isProcessing = false;
+      });
+    } catch (e) {
+      print('Error processing image: $e');
+      setState(() {
+        _isProcessing = false;
+        _extractedText = 'Error al procesar la imagen: $e';
+      });
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -167,11 +177,53 @@ Future<void> _processImage() async {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildInfoRow('Tipo', _receipt!.type),
-            _buildInfoRow('Número', _receipt!.number),
+            _buildInfoRow('Transacción', _receipt!.transactionNumber),
             _buildInfoRow('Fecha', _receipt!.date),
+            _buildInfoRow('Hora', _receipt!.time),
+            _buildInfoRow('Corresponsal', _receipt!.corresponsal),
             _buildInfoRow('Monto', '\$${_receipt!.amount.toStringAsFixed(2)}'),
-            _buildInfoRow('Cuenta', _receipt!.accountNumber),
-            _buildInfoRow('Referencia', _receipt!.reference),
+            
+            // Mostrar campos adicionales específicos del tipo
+            if (_receipt!.additionalFields.isNotEmpty) ...[
+              SizedBox(height: 8),
+              Text(
+                'Información Adicional',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              SizedBox(height: 4),
+              ..._receipt!.additionalFields.entries.map((entry) {
+                return _buildInfoRow(
+                  _formatFieldName(entry.key), 
+                  entry.value.toString()
+                );
+              }).toList(),
+            ],
+            
+            // Opción para ver texto completo
+            SizedBox(height: 8),
+            ExpansionTile(
+              title: Text(
+                'Ver texto completo',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.blue,
+                ),
+              ),
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(_receipt!.fullText),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -205,5 +257,19 @@ Future<void> _processImage() async {
         ],
       ),
     );
+  }
+
+  // Método auxiliar para formatear nombres de campos
+  String _formatFieldName(String name) {
+    // Convertir camelCase a palabras separadas
+    final formattedName = name.replaceAllMapped(
+      RegExp(r'([A-Z])'),
+      (Match m) => ' ${m[0]}',
+    );
+    
+    // Capitalizar primera letra
+    if (formattedName.isEmpty) return '';
+    return formattedName.substring(0, 1).toUpperCase() + 
+           (formattedName.length > 1 ? formattedName.substring(1) : '');
   }
 }

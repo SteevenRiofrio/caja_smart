@@ -1,41 +1,49 @@
 class Receipt {
   final String type;
-  final String number;
+  final String transactionNumber;
   final String date;
+  final String time;
+  final String corresponsal;
   final double amount;
-  final String accountNumber;
-  final String reference;
+  final Map<String, dynamic> additionalFields;
+  final String fullText;
 
   Receipt({
     required this.type,
-    required this.number,
+    required this.transactionNumber,
     required this.date,
+    required this.time,
+    required this.corresponsal,
     required this.amount,
-    required this.accountNumber,
-    required this.reference,
+    required this.additionalFields,
+    required this.fullText,
   });
 
   // Convertir a Map para almacenamiento local o envío al backend
   Map<String, dynamic> toJson() {
     return {
       'type': type,
-      'number': number,
+      'transactionNumber': transactionNumber,
       'date': date,
+      'time': time,
+      'corresponsal': corresponsal,
       'amount': amount,
-      'accountNumber': accountNumber,
-      'reference': reference,
+      'additionalFields': additionalFields,
+      'fullText': fullText,
     };
   }
 
-  // Crear objeto desde Map (para recuperación de datos)
+  // Crear objeto desde Map
   factory Receipt.fromJson(Map<String, dynamic> json) {
     return Receipt(
-      type: json['type'],
-      number: json['number'],
-      date: json['date'],
-      amount: json['amount'],
-      accountNumber: json['accountNumber'],
-      reference: json['reference'],
+      type: json['type'] ?? 'Desconocido',
+      transactionNumber: json['transactionNumber'] ?? '',
+      date: json['date'] ?? '',
+      time: json['time'] ?? '',
+      corresponsal: json['corresponsal'] ?? '',
+      amount: json['amount'] ?? 0.0,
+      additionalFields: json['additionalFields'] ?? {},
+      fullText: json['fullText'] ?? '',
     );
   }
 }
