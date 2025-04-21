@@ -36,26 +36,22 @@ class _PreviewScreenState extends State<PreviewScreen> {
       // Analizar el texto para obtener datos estructurados
       final receiptData = await ocrService.analyzeReceipt(extractedText);
       
-      // Extraer campos adicionales para crear el map de additionalFields
-      Map<String, dynamic> additionalFields = {};
-      receiptData.forEach((key, value) {
-        if (!['type', 'transactionNumber', 'date', 'time', 'corresponsal', 'amount', 'fullText'].contains(key)) {
-          additionalFields[key] = value;
-        }
-      });
-      
       setState(() {
         _extractedText = extractedText;
         
         // Crear el objeto Receipt con los datos extraídos
         _receipt = Receipt(
-          type: receiptData['type'] ?? 'Desconocido',
-          transactionNumber: receiptData['transactionNumber'] ?? '',
-          date: receiptData['date'] ?? '',
-          time: receiptData['time'] ?? '',
+          banco: 'Banco del Barrio | Banco Guayaquil',
+          fecha: receiptData['fecha'] ?? '',
+          hora: receiptData['hora'] ?? '',
+          tipo: receiptData['tipo'] ?? 'Pago de Servicio',
+          nroTransaccion: receiptData['nro_transaccion'] ?? '',
+          nroControl: receiptData['nro_control'] ?? '',
+          local: receiptData['local'] ?? '',
+          fechaAlternativa: receiptData['fecha_alternativa'] ?? '',
           corresponsal: receiptData['corresponsal'] ?? '',
-          amount: receiptData['amount'] ?? 0.0,
-          additionalFields: additionalFields,
+          tipoCuenta: receiptData['tipo_cuenta'] ?? '',
+          valorTotal: receiptData['valor_total'] ?? 0.0,
           fullText: extractedText,
         );
         
@@ -158,76 +154,64 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
   Widget _buildExtractionResult() {
-    if (_receipt == null) {
-      return Container(
-        padding: EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.grey.shade200,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(_extractedText),
-      );
-    }
-
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildInfoRow('Tipo', _receipt!.type),
-            _buildInfoRow('Transacción', _receipt!.transactionNumber),
-            _buildInfoRow('Fecha', _receipt!.date),
-            _buildInfoRow('Hora', _receipt!.time),
-            _buildInfoRow('Corresponsal', _receipt!.corresponsal),
-            _buildInfoRow('Monto', '\$${_receipt!.amount.toStringAsFixed(2)}'),
-            
-            // Mostrar campos adicionales específicos del tipo
-            if (_receipt!.additionalFields.isNotEmpty) ...[
-              SizedBox(height: 8),
-              Text(
-                'Información Adicional',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              SizedBox(height: 4),
-              ..._receipt!.additionalFields.entries.map((entry) {
-                return _buildInfoRow(
-                  _formatFieldName(entry.key), 
-                  entry.value.toString()
-                );
-              }).toList(),
-            ],
-            
-            // Opción para ver texto completo
-            SizedBox(height: 8),
-            ExpansionTile(
-              title: Text(
-                'Ver texto completo',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.blue,
-                ),
-              ),
-              children: [
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(_receipt!.fullText),
-                ),
-              ],
-            ),
-          ],
-        ),
+  if (_receipt == null) {
+    return Container(
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(8),
       ),
+      child: Text(_extractedText),
     );
+  }
+
+  return Card(
+    elevation: 2,
+    child: Padding(
+      padding: EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildInfoRow('Banco', _receipt!.banco),
+          _buildInfoRow('Fecha', _receipt!.fecha),
+          _buildInfoRow('Hora', _receipt!.hora),
+          _buildInfoRow('Tipo', _receipt!.tipo),
+          _buildInfoRow('Nro. Transacción', _receipt!.nroTransaccion.isEmpty ? 'No detectado' : _receipt!.nroTransaccion),
+          _buildInfoRow('Nro. Control', _receipt!.nroControl.isEmpty ? 'No detectado' : _receipt!.nroControl),
+          _buildInfoRow('Local', _receipt!.local),
+          if (_receipt!.fechaAlternativa.isNotEmpty)
+            _buildInfoRow('Fecha Alt.', _receipt!.fechaAlternativa),
+          _buildInfoRow('Corresponsal', _receipt!.corresponsal),
+          _buildInfoRow('Tipo de Cuenta', _receipt!.tipoCuenta),
+          _buildInfoRow('Valor Total', '\$${_receipt!.valorTotal.toStringAsFixed(2)}'),
+          
+          // Mostrar información extraída y texto original para depuración
+          SizedBox(height: 16),
+          ExpansionTile(
+            title: Text(
+              'Ver texto completo',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.blue,
+              ),
+            ),
+            children: [
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(_receipt!.fullText),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
+}
   }
 
   Widget _buildInfoRow(String label, String value) {
@@ -237,7 +221,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 100,
+            width: 120,
             child: Text(
               '$label:',
               style: TextStyle(
@@ -258,18 +242,3 @@ class _PreviewScreenState extends State<PreviewScreen> {
       ),
     );
   }
-
-  // Método auxiliar para formatear nombres de campos
-  String _formatFieldName(String name) {
-    // Convertir camelCase a palabras separadas
-    final formattedName = name.replaceAllMapped(
-      RegExp(r'([A-Z])'),
-      (Match m) => ' ${m[0]}',
-    );
-    
-    // Capitalizar primera letra
-    if (formattedName.isEmpty) return '';
-    return formattedName.substring(0, 1).toUpperCase() + 
-           (formattedName.length > 1 ? formattedName.substring(1) : '');
-  }
-}

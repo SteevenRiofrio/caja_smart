@@ -43,7 +43,7 @@ class StorageService {
   }
   
   // Eliminar un comprobante
-  Future<bool> deleteReceipt(String number) async {
+  Future<bool> deleteReceipt(String transactionNumber) async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       
@@ -53,7 +53,7 @@ class StorageService {
       // Filtrar para eliminar el comprobante
       List<String> updatedReceipts = receiptsJson.where((json) {
         Map<String, dynamic> receipt = jsonDecode(json);
-        return receipt['number'] != number;
+        return receipt['nroTransaccion'] != transactionNumber;
       }).toList();
       
       // Guardar lista actualizada
@@ -72,11 +72,22 @@ class StorageService {
       // Formato de fecha esperado: dd/MM/yyyy
       String dateStr = '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
       
-      // Filtrar por fecha
-      return allReceipts.where((receipt) => receipt.date == dateStr).toList();
+      // Filtrar por fecha - buscar en el campo 'fecha' de los comprobantes
+      return allReceipts.where((receipt) => receipt.fecha == dateStr).toList();
     } catch (e) {
       print('Error getting receipts by date: $e');
       return [];
+    }
+  }
+  
+  // Limpiar todos los comprobantes (para pruebas)
+  Future<bool> clearAllReceipts() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      return await prefs.remove(RECEIPTS_KEY);
+    } catch (e) {
+      print('Error clearing receipts: $e');
+      return false;
     }
   }
 }

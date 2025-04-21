@@ -1,34 +1,46 @@
 class Receipt {
-  final String type;
-  final String transactionNumber;
-  final String date;
-  final String time;
+  final String banco;
+  final String fecha;
+  final String hora;
+  final String tipo;
+  final String nroTransaccion;
+  final String nroControl;
+  final String local;
+  final String fechaAlternativa;
   final String corresponsal;
-  final double amount;
-  final Map<String, dynamic> additionalFields;
+  final String tipoCuenta;
+  final double valorTotal;
   final String fullText;
 
   Receipt({
-    required this.type,
-    required this.transactionNumber,
-    required this.date,
-    required this.time,
+    required this.banco,
+    required this.fecha,
+    required this.hora,
+    required this.tipo,
+    required this.nroTransaccion,
+    required this.nroControl,
+    required this.local,
+    required this.fechaAlternativa,
     required this.corresponsal,
-    required this.amount,
-    required this.additionalFields,
+    required this.tipoCuenta,
+    required this.valorTotal,
     required this.fullText,
   });
 
   // Convertir a Map para almacenamiento local o envío al backend
   Map<String, dynamic> toJson() {
     return {
-      'type': type,
-      'transactionNumber': transactionNumber,
-      'date': date,
-      'time': time,
+      'banco': banco,
+      'fecha': fecha,
+      'hora': hora,
+      'tipo': tipo,
+      'nroTransaccion': nroTransaccion,
+      'nroControl': nroControl,
+      'local': local,
+      'fechaAlternativa': fechaAlternativa,
       'corresponsal': corresponsal,
-      'amount': amount,
-      'additionalFields': additionalFields,
+      'tipoCuenta': tipoCuenta,
+      'valorTotal': valorTotal,
       'fullText': fullText,
     };
   }
@@ -36,13 +48,17 @@ class Receipt {
   // Crear objeto desde Map
   factory Receipt.fromJson(Map<String, dynamic> json) {
     return Receipt(
-      type: json['type'] ?? 'Desconocido',
-      transactionNumber: json['transactionNumber'] ?? '',
-      date: json['date'] ?? '',
-      time: json['time'] ?? '',
+      banco: json['banco'] ?? 'Banco del Barrio | Banco Guayaquil',
+      fecha: json['fecha'] ?? '',
+      hora: json['hora'] ?? '',
+      tipo: json['tipo'] ?? 'Pago de Servicio',
+      nroTransaccion: json['nroTransaccion'] ?? '',
+      nroControl: json['nroControl'] ?? '',
+      local: json['local'] ?? '',
+      fechaAlternativa: json['fechaAlternativa'] ?? '',
       corresponsal: json['corresponsal'] ?? '',
-      amount: json['amount'] ?? 0.0,
-      additionalFields: json['additionalFields'] ?? {},
+      tipoCuenta: json['tipoCuenta'] ?? '',
+      valorTotal: json['valorTotal'] ?? 0.0,
       fullText: json['fullText'] ?? '',
     );
   }
