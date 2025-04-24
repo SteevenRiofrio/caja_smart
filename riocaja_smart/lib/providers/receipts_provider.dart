@@ -1,11 +1,12 @@
+// lib/providers/receipts_provider.dart
 import 'package:flutter/foundation.dart';
 import 'package:riocaja_smart/models/receipt.dart';
-import 'package:riocaja_smart/services/storage_service.dart';
+import 'package:riocaja_smart/services/api_service.dart';
 
 class ReceiptsProvider with ChangeNotifier {
   List<Receipt> _receipts = [];
   bool _isLoading = false;
-  final StorageService _storageService = StorageService();
+  final ApiService _apiService = ApiService();
   
   List<Receipt> get receipts => _receipts;
   bool get isLoading => _isLoading;
@@ -16,7 +17,7 @@ class ReceiptsProvider with ChangeNotifier {
     notifyListeners();
     
     try {
-      _receipts = await _storageService.getAllReceipts();
+      _receipts = await _apiService.getAllReceipts();
     } catch (e) {
       print('Error loading receipts: $e');
       _receipts = []; // Lista vacía en caso de error
@@ -32,10 +33,10 @@ class ReceiptsProvider with ChangeNotifier {
     notifyListeners();
     
     try {
-      bool success = await _storageService.saveReceipt(receipt);
+      bool success = await _apiService.saveReceipt(receipt);
       
       if (success) {
-        _receipts.add(receipt);
+        await loadReceipts(); // Recargar lista desde el backend
       }
       
       _isLoading = false;
@@ -55,7 +56,7 @@ class ReceiptsProvider with ChangeNotifier {
     notifyListeners();
     
     try {
-      bool success = await _storageService.deleteReceipt(transactionNumber);
+      bool success = await _apiService.deleteReceipt(transactionNumber);
       
       if (success) {
         _receipts.removeWhere((receipt) => receipt.nroTransaccion == transactionNumber);
@@ -82,26 +83,19 @@ class ReceiptsProvider with ChangeNotifier {
   }
   
   // Generar reporte de cierre para una fecha específica
-  Map<String, dynamic> generateClosingReport(DateTime date) {
-    List<Receipt> dateReceipts = getReceiptsByDate(date);
-    
-    if (dateReceipts.isEmpty) {
+  Future<Map<String, dynamic>> generateClosingReport(DateTime date) async {
+    try {
+      return await _apiService.getClosingReport(date);
+    } catch (e) {
+      print('Error generating closing report: $e');
+      
+      // Valor por defecto si hay error
       return {
         'summary': {},
         'total': 0.0,
-        'date': date,
+        'date': date.toString(),
         'count': 0,
       };
     }
-    
-    // Calcular total
-    double total = dateReceipts.fold(0, (sum, receipt) => sum + receipt.valorTotal);
-    
-    return {
-      'summary': {'Pago de Servicio': total},
-      'total': total,
-      'date': date,
-      'count': dateReceipts.length,
-    };
   }
 }

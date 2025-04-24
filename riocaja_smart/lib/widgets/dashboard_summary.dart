@@ -1,14 +1,54 @@
+// lib/widgets/dashboard_summary.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:riocaja_smart/providers/receipts_provider.dart';
 
-class DashboardSummary extends StatelessWidget {
+class DashboardSummary extends StatefulWidget {
+  @override
+  _DashboardSummaryState createState() => _DashboardSummaryState();
+}
+
+class _DashboardSummaryState extends State<DashboardSummary> {
+  bool _isLoading = true;
+  Map<String, dynamic> _reportData = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReportData();
+  }
+
+  Future<void> _loadReportData() async {
+    final receiptsProvider = Provider.of<ReceiptsProvider>(context, listen: false);
+    
+    setState(() => _isLoading = true);
+    
+    try {
+      // Obtener el reporte para la fecha actual
+      final reportData = await receiptsProvider.generateClosingReport(DateTime.now());
+      
+      setState(() {
+        _reportData = reportData;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading report data: $e');
+      setState(() {
+        _reportData = {
+          'summary': {},
+          'total': 0.0,
+          'date': DateTime.now(),
+          'count': 0,
+        };
+        _isLoading = false;
+      });
+    }
+  }
+  
   @override
   Widget build(BuildContext context) {
-    final receiptsProvider = Provider.of<ReceiptsProvider>(context);
-    
     // Verificar si está cargando
-    if (receiptsProvider.isLoading) {
+    if (_isLoading) {
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -17,11 +57,8 @@ class DashboardSummary extends StatelessWidget {
       );
     }
     
-    // Generar el reporte para la fecha actual
-    final reportData = receiptsProvider.generateClosingReport(DateTime.now());
-    
     // Si no hay datos
-    if (reportData.isEmpty || (reportData['count'] as int) == 0) {
+    if (_reportData.isEmpty || (_reportData['count'] as int) == 0) {
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -46,9 +83,9 @@ class DashboardSummary extends StatelessWidget {
     }
     
     // Mostrar el resumen
-    final summary = reportData['summary'] as Map<String, double>;
-    final total = reportData['total'] as double;
-    final count = reportData['count'] as int;
+    final summary = _reportData['summary'] as Map<String, dynamic>;
+    final total = _reportData['total'] as double;
+    final count = _reportData['count'] as int;
     
     return Card(
       child: Padding(
@@ -96,7 +133,7 @@ class DashboardSummary extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(entry.key),
-                    Text('\$${entry.value.toStringAsFixed(2)}'),
+                    Text('\$${(entry.value as num).toStringAsFixed(2)}'),
                   ],
                 ),
               );

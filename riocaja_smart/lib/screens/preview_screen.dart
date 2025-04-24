@@ -1,7 +1,10 @@
+// lib/screens/preview_screen.dart
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:riocaja_smart/services/ocr_service.dart';
 import 'package:riocaja_smart/models/receipt.dart';
+import 'package:provider/provider.dart';
+import 'package:riocaja_smart/providers/receipts_provider.dart';
 
 class PreviewScreen extends StatefulWidget {
   final String imagePath;
@@ -129,15 +132,44 @@ class _PreviewScreenState extends State<PreviewScreen> {
                       SizedBox(width: 16),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () {
-                            // Aquí se guardaría en la base de datos local
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Comprobante guardado exitosamente'),
-                              ),
-                            );
-                            Navigator.of(context).pop();
-                            Navigator.of(context).pop(); // Volver a la pantalla de inicio
+                          onPressed: () async {
+                            if (_receipt == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error: No se pudo procesar el comprobante'),
+                                ),
+                              );
+                              return;
+                            }
+                            
+                            // Usar el provider para guardar el comprobante en el backend
+                            final provider = Provider.of<ReceiptsProvider>(context, listen: false);
+                            
+                            try {
+                              final success = await provider.addReceipt(_receipt!);
+                              
+                              if (success) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Comprobante guardado exitosamente'),
+                                  ),
+                                );
+                                Navigator.of(context).pop();
+                                Navigator.of(context).pop(); // Volver a la pantalla de inicio
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Error al guardar el comprobante'),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error: ${e.toString()}'),
+                                ),
+                              );
+                            }
                           },
                           child: Text('Guardar'),
                           style: ElevatedButton.styleFrom(
@@ -154,64 +186,63 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
   Widget _buildExtractionResult() {
-  if (_receipt == null) {
-    return Container(
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(_extractedText),
-    );
-  }
+    if (_receipt == null) {
+      return Container(
+        padding: EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(_extractedText),
+      );
+    }
 
-  return Card(
-    elevation: 2,
-    child: Padding(
-      padding: EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildInfoRow('Banco', _receipt!.banco),
-          _buildInfoRow('Fecha', _receipt!.fecha),
-          _buildInfoRow('Hora', _receipt!.hora),
-          _buildInfoRow('Tipo', _receipt!.tipo),
-          _buildInfoRow('Nro. Transacción', _receipt!.nroTransaccion.isEmpty ? 'No detectado' : _receipt!.nroTransaccion),
-          _buildInfoRow('Nro. Control', _receipt!.nroControl.isEmpty ? 'No detectado' : _receipt!.nroControl),
-          _buildInfoRow('Local', _receipt!.local),
-          if (_receipt!.fechaAlternativa.isNotEmpty)
-            _buildInfoRow('Fecha Alt.', _receipt!.fechaAlternativa),
-          _buildInfoRow('Corresponsal', _receipt!.corresponsal),
-          _buildInfoRow('Tipo de Cuenta', _receipt!.tipoCuenta),
-          _buildInfoRow('Valor Total', '\$${_receipt!.valorTotal.toStringAsFixed(2)}'),
-          
-          // Mostrar información extraída y texto original para depuración
-          SizedBox(height: 16),
-          ExpansionTile(
-            title: Text(
-              'Ver texto completo',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.blue,
-              ),
-            ),
-            children: [
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildInfoRow('Banco', _receipt!.banco),
+            _buildInfoRow('Fecha', _receipt!.fecha),
+            _buildInfoRow('Hora', _receipt!.hora),
+            _buildInfoRow('Tipo', _receipt!.tipo),
+            _buildInfoRow('Nro. Transacción', _receipt!.nroTransaccion.isEmpty ? 'No detectado' : _receipt!.nroTransaccion),
+            _buildInfoRow('Nro. Control', _receipt!.nroControl.isEmpty ? 'No detectado' : _receipt!.nroControl),
+            _buildInfoRow('Local', _receipt!.local),
+            if (_receipt!.fechaAlternativa.isNotEmpty)
+              _buildInfoRow('Fecha Alt.', _receipt!.fechaAlternativa),
+            _buildInfoRow('Corresponsal', _receipt!.corresponsal),
+            _buildInfoRow('Tipo de Cuenta', _receipt!.tipoCuenta),
+            _buildInfoRow('Valor Total', '\$${_receipt!.valorTotal.toStringAsFixed(2)}'),
+            
+            // Mostrar información extraída y texto original para depuración
+            SizedBox(height: 16),
+            ExpansionTile(
+              title: Text(
+                'Ver texto completo',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.blue,
                 ),
-                child: Text(_receipt!.fullText),
               ),
-            ],
-          ),
-        ],
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(_receipt!.fullText),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
   }
 
   Widget _buildInfoRow(String label, String value) {
@@ -242,3 +273,4 @@ class _PreviewScreenState extends State<PreviewScreen> {
       ),
     );
   }
+}
