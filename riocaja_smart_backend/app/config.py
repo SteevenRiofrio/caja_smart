@@ -1,13 +1,12 @@
-# app/config.py
 import os
 from dotenv import load_dotenv
 
 # Cargar variables de entorno desde .env
 load_dotenv()
 
-# Configuración de MongoDB
-MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://username:password@cluster.mongodb.net/riocaja_smart?retryWrites=true&w=majority")
-DATABASE_NAME = os.getenv("DATABASE_NAME", "riocaja_smart")
+# Cadena de conexión directa (sin SRV)
+MONGO_URI = "mongodb+srv://riocajasmart09:riocajas12345@cluster0.ow7d1gr.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+DATABASE_NAME = "riocaja_smart"
 
 # Configuración de la API
 API_PREFIX = "/api/v1"

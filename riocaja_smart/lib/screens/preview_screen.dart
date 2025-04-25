@@ -1,4 +1,5 @@
 // lib/screens/preview_screen.dart
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:riocaja_smart/services/ocr_service.dart';
@@ -29,19 +30,19 @@ class _PreviewScreenState extends State<PreviewScreen> {
   Future<void> _processImage() async {
     try {
       setState(() => _isProcessing = true);
-      
+
       // Usar el servicio OCR
       final ocrService = OcrService();
-      
+
       // Extraer texto de la imagen
       final extractedText = await ocrService.extractText(widget.imagePath);
-      
+
       // Analizar el texto para obtener datos estructurados
       final receiptData = await ocrService.analyzeReceipt(extractedText);
-      
+
       setState(() {
         _extractedText = extractedText;
-        
+
         // Crear el objeto Receipt con los datos extraídos
         _receipt = Receipt(
           banco: 'Banco del Barrio | Banco Guayaquil',
@@ -57,7 +58,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
           valorTotal: receiptData['valor_total'] ?? 0.0,
           fullText: extractedText,
         );
-        
+
         _isProcessing = false;
       });
     } catch (e) {
@@ -72,116 +73,134 @@ class _PreviewScreenState extends State<PreviewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Revisar Comprobante'),
-      ),
-      body: _isProcessing
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 20),
-                  Text('Procesando imagen...'),
-                ],
-              ),
-            )
-          : SingleChildScrollView(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Imagen capturada
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.file(
-                      File(widget.imagePath),
-                      width: double.infinity,
-                      fit: BoxFit.cover,
+      appBar: AppBar(title: Text('Revisar Comprobante')),
+      body:
+          _isProcessing
+              ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 20),
+                    Text('Procesando imagen...'),
+                  ],
+                ),
+              )
+              : SingleChildScrollView(
+                padding: EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Imagen capturada
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.file(
+                        File(widget.imagePath),
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 20),
-                  
-                  // Datos extraídos
-                  Text(
-                    'Información Extraída',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                    SizedBox(height: 20),
+
+                    // Datos extraídos
+                    Text(
+                      'Información Extraída',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 8),
-                  _buildExtractionResult(),
-                  
-                  SizedBox(height: 24),
-                  
-                  // Botones de acción
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                          child: Text('Volver a Capturar'),
-                          style: OutlinedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(vertical: 12),
+                    SizedBox(height: 8),
+                    _buildExtractionResult(),
+
+                    SizedBox(height: 24),
+
+                    // Botones de acción
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                            },
+                            child: Text('Volver a Capturar'),
+                            style: OutlinedButton.styleFrom(
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                            ),
                           ),
                         ),
-                      ),
-                      SizedBox(width: 16),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            if (_receipt == null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Error: No se pudo procesar el comprobante'),
-                                ),
-                              );
-                              return;
-                            }
-                            
-                            // Usar el provider para guardar el comprobante en el backend
-                            final provider = Provider.of<ReceiptsProvider>(context, listen: false);
-                            
-                            try {
-                              final success = await provider.addReceipt(_receipt!);
-                              
-                              if (success) {
+                        SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              if (_receipt == null) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text('Comprobante guardado exitosamente'),
+                                    content: Text(
+                                      'Error: No se pudo procesar el comprobante',
+                                    ),
                                   ),
                                 );
-                                Navigator.of(context).pop();
-                                Navigator.of(context).pop(); // Volver a la pantalla de inicio
-                              } else {
+                                return;
+                              }
+
+                              // Agregar código de depuración aquí
+                              final receiptJson = _receipt!.toJson();
+                              print(
+                                'Datos a enviar: ${jsonEncode(receiptJson)}',
+                              );
+
+                              // Usar el provider para guardar el comprobante en el backend
+                              final provider = Provider.of<ReceiptsProvider>(
+                                context,
+                                listen: false,
+                              );
+
+                              try {
+                                final success = await provider.addReceipt(
+                                  _receipt!,
+                                );
+
+                                if (success) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Comprobante guardado exitosamente',
+                                      ),
+                                    ),
+                                  );
+                                  Navigator.of(context).pop();
+                                  Navigator.of(
+                                    context,
+                                  ).pop(); // Volver a la pantalla de inicio
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Error al guardar el comprobante',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text('Error al guardar el comprobante'),
+                                    content: Text('Error: ${e.toString()}'),
                                   ),
                                 );
                               }
-                            } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Error: ${e.toString()}'),
-                                ),
-                              );
-                            }
-                          },
-                          child: Text('Guardar'),
-                          style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(vertical: 12),
+                            },
+                            child: Text('Guardar'),
+                            style: ElevatedButton.styleFrom(
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
     );
   }
 
@@ -208,24 +227,34 @@ class _PreviewScreenState extends State<PreviewScreen> {
             _buildInfoRow('Fecha', _receipt!.fecha),
             _buildInfoRow('Hora', _receipt!.hora),
             _buildInfoRow('Tipo', _receipt!.tipo),
-            _buildInfoRow('Nro. Transacción', _receipt!.nroTransaccion.isEmpty ? 'No detectado' : _receipt!.nroTransaccion),
-            _buildInfoRow('Nro. Control', _receipt!.nroControl.isEmpty ? 'No detectado' : _receipt!.nroControl),
+            _buildInfoRow(
+              'Nro. Transacción',
+              _receipt!.nroTransaccion.isEmpty
+                  ? 'No detectado'
+                  : _receipt!.nroTransaccion,
+            ),
+            _buildInfoRow(
+              'Nro. Control',
+              _receipt!.nroControl.isEmpty
+                  ? 'No detectado'
+                  : _receipt!.nroControl,
+            ),
             _buildInfoRow('Local', _receipt!.local),
             if (_receipt!.fechaAlternativa.isNotEmpty)
               _buildInfoRow('Fecha Alt.', _receipt!.fechaAlternativa),
             _buildInfoRow('Corresponsal', _receipt!.corresponsal),
             _buildInfoRow('Tipo de Cuenta', _receipt!.tipoCuenta),
-            _buildInfoRow('Valor Total', '\$${_receipt!.valorTotal.toStringAsFixed(2)}'),
-            
+            _buildInfoRow(
+              'Valor Total',
+              '\$${_receipt!.valorTotal.toStringAsFixed(2)}',
+            ),
+
             // Mostrar información extraída y texto original para depuración
             SizedBox(height: 16),
             ExpansionTile(
               title: Text(
                 'Ver texto completo',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.blue,
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.blue),
               ),
               children: [
                 Container(
@@ -262,12 +291,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
             ),
           ),
           Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            child: Text(value, style: TextStyle(fontWeight: FontWeight.w500)),
           ),
         ],
       ),

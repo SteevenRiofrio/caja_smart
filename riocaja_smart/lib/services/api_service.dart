@@ -5,10 +5,10 @@ import 'package:riocaja_smart/models/receipt.dart';
 
 class ApiService {
   // URL base de la API - Ajustar según tu entorno
-  final String baseUrl = 'http://10.0.2.2:8000/api/v1'; // Para emulador Android
+  //final String baseUrl = 'http://10.0.2.2:8000/api/v1'; // Para emulador Android
   // final String baseUrl = 'http://localhost:8000/api/v1'; // Para iOS
   // Si estás probando en un dispositivo físico, usa la IP de tu computadora
-  // final String baseUrl = 'http://192.168.1.X:8000/api/v1';
+   final String baseUrl = 'http://192.168.100.216:8000/api/v1';
   
   // Obtener todos los comprobantes
   Future<List<Receipt>> getAllReceipts() async {

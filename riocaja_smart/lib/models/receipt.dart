@@ -1,3 +1,4 @@
+// lib/models/receipt.dart
 class Receipt {
   final String banco;
   final String fecha;
@@ -34,14 +35,14 @@ class Receipt {
       'fecha': fecha,
       'hora': hora,
       'tipo': tipo,
-      'nroTransaccion': nroTransaccion,
-      'nroControl': nroControl,
+      'nro_transaccion': nroTransaccion,  // Cambiado de 'nroTransaccion'
+      'nro_control': nroControl,          // Cambiado de 'nroControl'
       'local': local,
-      'fechaAlternativa': fechaAlternativa,
+      'fecha_alternativa': fechaAlternativa,  // Cambiado de 'fechaAlternativa'
       'corresponsal': corresponsal,
-      'tipoCuenta': tipoCuenta,
-      'valorTotal': valorTotal,
-      'fullText': fullText,
+      'tipo_cuenta': tipoCuenta,          // Cambiado de 'tipoCuenta'
+      'valor_total': valorTotal,          // Cambiado de 'valorTotal'
+      'full_text': fullText,              // Cambiado de 'fullText'
     };
   }
 
@@ -52,14 +53,14 @@ class Receipt {
       fecha: json['fecha'] ?? '',
       hora: json['hora'] ?? '',
       tipo: json['tipo'] ?? 'Pago de Servicio',
-      nroTransaccion: json['nroTransaccion'] ?? '',
-      nroControl: json['nroControl'] ?? '',
+      nroTransaccion: json['nro_transaccion'] ?? '',  // Cambiado de 'nroTransaccion'
+      nroControl: json['nro_control'] ?? '',          // Cambiado de 'nroControl'
       local: json['local'] ?? '',
-      fechaAlternativa: json['fechaAlternativa'] ?? '',
+      fechaAlternativa: json['fecha_alternativa'] ?? '', // Cambiado de 'fechaAlternativa'
       corresponsal: json['corresponsal'] ?? '',
-      tipoCuenta: json['tipoCuenta'] ?? '',
-      valorTotal: json['valorTotal'] ?? 0.0,
-      fullText: json['fullText'] ?? '',
+      tipoCuenta: json['tipo_cuenta'] ?? '',          // Cambiado de 'tipoCuenta'
+      valorTotal: json['valor_total'] ?? 0.0,         // Cambiado de 'valorTotal'
+      fullText: json['full_text'] ?? '',              // Cambiado de 'fullText'
     );
   }
 }
