@@ -64,24 +64,35 @@ class ReceiptService:
             logger.error(f"Error al crear comprobante: {e}")
             raise
     
+    # Método para buscar recibo por número de transacción
     async def get_receipt_by_transaction(self, transaction_number: str) -> Optional[dict]:
         try:
-            receipt = self.receipts.find_one({"nroTransaccion": transaction_number})
+            logger.info(f"Buscando comprobante con número de transacción: '{transaction_number}'")
+            
+            # Buscar por el campo nro_transaccion
+            receipt = self.receipts.find_one({"nro_transaccion": transaction_number})
+            
             if receipt:
+                logger.info(f"Comprobante encontrado: {receipt.get('_id')}")
                 receipt["_id"] = str(receipt["_id"])
-            return receipt
+                return receipt
+            else:
+                logger.info(f"No se encontró ningún comprobante con transacción: {transaction_number}")
+                return None
         except Exception as e:
-            logger.error(f"Error al buscar comprobante por número de transacción: {e}")
+            logger.error(f"Error al buscar comprobante: {e}")
             return None
     
+    # Método para eliminar recibo
     async def delete_receipt(self, transaction_number: str) -> bool:
         try:
-            result = self.receipts.delete_one({"nroTransaccion": transaction_number})
+            logger.info(f"Intentando eliminar comprobante con transacción: '{transaction_number}'")
+            
+            # Buscar y eliminar por número de transacción
+            result = self.receipts.delete_one({"nro_transaccion": transaction_number})
+            
             success = result.deleted_count > 0
-            if success:
-                logger.info(f"Comprobante {transaction_number} eliminado exitosamente")
-            else:
-                logger.warning(f"No se encontró comprobante con número de transacción {transaction_number}")
+            logger.info(f"Resultado de eliminación: {success} (deleted_count: {result.deleted_count})")
             return success
         except Exception as e:
             logger.error(f"Error al eliminar comprobante: {e}")
@@ -101,16 +112,16 @@ class ReceiptService:
                 }
             
             # Calcular total
-            total = sum(receipt.get("valorTotal", 0) for receipt in receipts)
+            total = sum(receipt.get("valor_total", 0) for receipt in receipts)
             
             # Agrupar por tipo de transacción
             summary = {}
             for receipt in receipts:
                 tipo = receipt.get("tipo", "Desconocido")
                 if tipo in summary:
-                    summary[tipo] += receipt.get("valorTotal", 0)
+                    summary[tipo] += receipt.get("valor_total", 0)
                 else:
-                    summary[tipo] = receipt.get("valorTotal", 0)
+                    summary[tipo] = receipt.get("valor_total", 0)
             
             logger.info(f"Reporte generado para {date_str}: {len(receipts)} comprobantes, total: {total}")
             return {

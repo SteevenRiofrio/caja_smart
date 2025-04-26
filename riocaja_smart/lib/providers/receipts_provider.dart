@@ -17,6 +17,7 @@ class ReceiptsProvider with ChangeNotifier {
     notifyListeners();
     
     try {
+       print("Intentando cargar comprobantes desde el backend...");
       _receipts = await _apiService.getAllReceipts();
     } catch (e) {
       print('Error loading receipts: $e');

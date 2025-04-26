@@ -1,7 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:riocaja_smart/models/receipt.dart';
-import 'package:riocaja_smart/services/storage_service.dart';
-import 'dart:io';
+import 'package:provider/provider.dart';
+import 'package:riocaja_smart/providers/receipts_provider.dart';
 
 class HistoryScreen extends StatefulWidget {
   @override
@@ -9,52 +10,55 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  List<Receipt> _receipts = [];
   bool _isLoading = true;
-  final StorageService _storageService = StorageService();
   
-  @override
-  void initState() {
-    super.initState();
-    _loadReceipts();
+@override
+void initState() {
+  super.initState();
+  print('HistoryScreen initState - cargando comprobantes...');
+  _loadReceipts();
+}
+
+Future<void> _loadReceipts() async {
+  setState(() => _isLoading = true);
+  
+  try {
+    print('HistoryScreen: Intentando cargar comprobantes desde el provider...');
+    await Provider.of<ReceiptsProvider>(context, listen: false).loadReceipts();
+    final receipts = Provider.of<ReceiptsProvider>(context, listen: false).receipts;
+    print('HistoryScreen: Se cargaron ${receipts.length} comprobantes');
+  } catch (e) {
+    print('HistoryScreen: Error al cargar comprobantes: $e');
   }
   
-  Future<void> _loadReceipts() async {
-    setState(() => _isLoading = true);
-    
-    try {
-      // Cargar comprobantes desde almacenamiento local
-      final receipts = await _storageService.getAllReceipts();
-      setState(() {
-        _receipts = receipts;
-        _isLoading = false;
-      });
-    } catch (e) {
-      print('Error loading receipts: $e');
-      setState(() {
-        _receipts = [];
-        _isLoading = false;
-      });
-    }
-  }
+  setState(() => _isLoading = false);
+}
   
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Historial de Comprobantes'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: _loadReceipts,
+    // Usar el Consumer para escuchar cambios en los datos
+    return Consumer<ReceiptsProvider>(
+      builder: (context, receiptsProvider, child) {
+        final _receipts = receiptsProvider.receipts;
+        final _isProviderLoading = receiptsProvider.isLoading;
+        
+        return Scaffold(
+          appBar: AppBar(
+            title: Text('Historial de Comprobantes'),
+            actions: [
+              IconButton(
+                icon: Icon(Icons.refresh),
+                onPressed: _loadReceipts,
+              ),
+            ],
           ),
-        ],
-      ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : _receipts.isEmpty
-              ? _buildEmptyState()
-              : _buildReceiptsList(),
+          body: _isLoading || _isProviderLoading
+              ? Center(child: CircularProgressIndicator())
+              : _receipts.isEmpty
+                  ? _buildEmptyState()
+                  : _buildReceiptsList(_receipts),
+        );
+      },
     );
   }
   
@@ -89,17 +93,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
   
-  Widget _buildReceiptsList() {
+  Widget _buildReceiptsList(List<Receipt> receipts) {
     return ListView.builder(
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: _receipts.length,
+      itemCount: receipts.length,
       itemBuilder: (context, index) {
-        final receipt = _receipts[index];
+        final receipt = receipts[index];
         return _buildReceiptCard(receipt);
       },
     );
   }
-  
+
   Widget _buildReceiptCard(Receipt receipt) {
     return Card(
       margin: EdgeInsets.only(bottom: 12),
@@ -359,23 +363,33 @@ class _HistoryScreenState extends State<HistoryScreen> {
               onPressed: () async {
                 Navigator.of(context).pop(); // Cerrar el diálogo
                 
-                // Eliminar el comprobante
+                // Usar el provider para eliminar el comprobante
+                final provider = Provider.of<ReceiptsProvider>(context, listen: false);
+                
                 try {
-                  await _storageService.deleteReceipt(receipt.nroTransaccion);
-                  setState(() {
-                    _receipts.removeWhere((r) => r.nroTransaccion == receipt.nroTransaccion);
-                  });
+                  final success = await provider.deleteReceipt(receipt.nroTransaccion);
                   
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Comprobante eliminado exitosamente'),
-                    ),
-                  );
+                  if (success) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Comprobante eliminado exitosamente'),
+                      ),
+                    );
+                    
+                    // Recargar la lista después de eliminar
+                    await provider.loadReceipts();
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error al eliminar el comprobante'),
+                      ),
+                    );
+                  }
                 } catch (e) {
-                  print('Error deleting receipt: $e');
+                  print('Error al eliminar comprobante: $e');
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Error al eliminar el comprobante'),
+                      content: Text('Error: $e'),
                     ),
                   );
                 }

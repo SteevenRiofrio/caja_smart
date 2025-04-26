@@ -4,24 +4,26 @@ import 'package:http/http.dart' as http;
 import 'package:riocaja_smart/models/receipt.dart';
 
 class ApiService {
-  // URL base de la API - Ajustar según tu entorno
-  //final String baseUrl = 'http://10.0.2.2:8000/api/v1'; // Para emulador Android
-  // final String baseUrl = 'http://localhost:8000/api/v1'; // Para iOS
-  // Si estás probando en un dispositivo físico, usa la IP de tu computadora
-   final String baseUrl = 'http://192.168.100.216:8000/api/v1';
+  // Asegúrate de que esta URL sea correcta - usa tu dirección IP y puerto correcto
+  final String baseUrl = 'http://192.168.100.216:8080/api/v1';
   
   // Obtener todos los comprobantes
   Future<List<Receipt>> getAllReceipts() async {
     try {
+      print('Obteniendo comprobantes de: $baseUrl/receipts/');
       final response = await http.get(Uri.parse('$baseUrl/receipts/'));
+      
+      print('Respuesta: ${response.statusCode}');
       
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = jsonDecode(response.body);
         final List<dynamic> receiptsJson = responseData['data'];
         
+        print('Comprobantes obtenidos: ${receiptsJson.length}');
         return receiptsJson.map((json) => Receipt.fromJson(json)).toList();
       } else {
-        throw Exception('Error al obtener comprobantes: ${response.statusCode}');
+        print('Error HTTP: ${response.statusCode}');
+        throw Exception('Error al obtener comprobantes');
       }
     } catch (e) {
       print('Error en getAllReceipts: $e');
@@ -32,11 +34,19 @@ class ApiService {
   // Guardar un nuevo comprobante
   Future<bool> saveReceipt(Receipt receipt) async {
     try {
+      print('Guardando comprobante en: $baseUrl/receipts/');
+      print('Datos a enviar: ${jsonEncode(receipt.toJson())}');
+      
       final response = await http.post(
         Uri.parse('$baseUrl/receipts/'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(receipt.toJson()),
       );
+      
+      print('Respuesta del servidor: ${response.statusCode}');
+      if (response.body.isNotEmpty) {
+        print('Cuerpo: ${response.body.substring(0, min(100, response.body.length))}...');
+      }
       
       if (response.statusCode == 200) {
         return true;
@@ -48,24 +58,36 @@ class ApiService {
       throw Exception('Error de conexión: $e');
     }
   }
-  
-  // Eliminar un comprobante
-  Future<bool> deleteReceipt(String transactionNumber) async {
-    try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl/receipts/$transactionNumber'),
-      );
-      
-      if (response.statusCode == 200) {
-        return true;
-      } else {
-        throw Exception('Error al eliminar comprobante: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error en deleteReceipt: $e');
-      throw Exception('Error de conexión: $e');
-    }
+
+
+  // Eliminar un comprobante por número de transacción
+Future<bool> deleteReceipt(String transactionNumber) async {
+  if (transactionNumber.isEmpty) {
+    throw Exception('El número de transacción no puede estar vacío.');
   }
+
+  try {
+    print('Eliminando comprobante con número de transacción: $transactionNumber');
+    final response = await http.delete(
+      Uri.parse('$baseUrl/receipts/$transactionNumber'),
+    );
+
+    print('Respuesta del servidor: ${response.statusCode}');
+    if (response.body.isNotEmpty) {
+      print('Cuerpo: ${response.body.substring(0, min(100, response.body.length))}...');
+    }
+
+    if (response.statusCode == 200) {
+      return true;
+    } else {
+      throw Exception('Error al eliminar comprobante: ${response.statusCode}');
+    }
+  } catch (e) {
+    print('Error en deleteReceipt: $e');
+    throw Exception('Error de conexión: $e');
+  }
+}
+
   
   // Obtener reporte de cierre
   Future<Map<String, dynamic>> getClosingReport(DateTime date) async {
@@ -73,9 +95,12 @@ class ApiService {
     String dateStr = '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
     
     try {
+      print('Obteniendo reporte para fecha: $dateStr');
       final response = await http.get(
         Uri.parse('$baseUrl/receipts/report/$dateStr'),
       );
+      
+      print('Respuesta: ${response.statusCode}');
       
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -86,5 +111,10 @@ class ApiService {
       print('Error en getClosingReport: $e');
       throw Exception('Error de conexión: $e');
     }
+  }
+  
+  // Helper function for min (used in truncating logs)
+  int min(int a, int b) {
+    return (a < b) ? a : b;
   }
 }

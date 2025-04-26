@@ -1,4 +1,3 @@
-// lib/widgets/dashboard_summary.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:riocaja_smart/providers/receipts_provider.dart';

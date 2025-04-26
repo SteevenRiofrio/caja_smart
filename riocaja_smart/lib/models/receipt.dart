@@ -35,14 +35,14 @@ class Receipt {
       'fecha': fecha,
       'hora': hora,
       'tipo': tipo,
-      'nro_transaccion': nroTransaccion,  // Cambiado de 'nroTransaccion'
-      'nro_control': nroControl,          // Cambiado de 'nroControl'
+      'nro_transaccion': nroTransaccion, // Cambiado de 'nroTransaccion'
+      'nro_control': nroControl, // Cambiado de 'nroControl'
       'local': local,
-      'fecha_alternativa': fechaAlternativa,  // Cambiado de 'fechaAlternativa'
+      'fecha_alternativa': fechaAlternativa, // Cambiado de 'fechaAlternativa'
       'corresponsal': corresponsal,
-      'tipo_cuenta': tipoCuenta,          // Cambiado de 'tipoCuenta'
-      'valor_total': valorTotal,          // Cambiado de 'valorTotal'
-      'full_text': fullText,              // Cambiado de 'fullText'
+      'tipo_cuenta': tipoCuenta, // Cambiado de 'tipoCuenta'
+      'valor_total': valorTotal, // Cambiado de 'valorTotal'
+      'full_text': fullText, // Cambiado de 'fullText'
     };
   }
 
@@ -53,14 +53,21 @@ class Receipt {
       fecha: json['fecha'] ?? '',
       hora: json['hora'] ?? '',
       tipo: json['tipo'] ?? 'Pago de Servicio',
-      nroTransaccion: json['nro_transaccion'] ?? '',  // Cambiado de 'nroTransaccion'
-      nroControl: json['nro_control'] ?? '',          // Cambiado de 'nroControl'
+      nroTransaccion:
+          json['nro_transaccion'] ?? '', // Nombre del campo según el backend
+      nroControl:
+          json['nro_control'] ?? '', // Nombre del campo según el backend
       local: json['local'] ?? '',
-      fechaAlternativa: json['fecha_alternativa'] ?? '', // Cambiado de 'fechaAlternativa'
+      fechaAlternativa:
+          json['fecha_alternativa'] ?? '', // Nombre del campo según el backend
       corresponsal: json['corresponsal'] ?? '',
-      tipoCuenta: json['tipo_cuenta'] ?? '',          // Cambiado de 'tipoCuenta'
-      valorTotal: json['valor_total'] ?? 0.0,         // Cambiado de 'valorTotal'
-      fullText: json['full_text'] ?? '',              // Cambiado de 'fullText'
+      tipoCuenta:
+          json['tipo_cuenta'] ?? '', // Nombre del campo según el backend
+      valorTotal:
+          (json['valor_total'] is num)
+              ? json['valor_total'].toDouble()
+              : 0.0, // Mejor manejo de tipos
+      fullText: json['full_text'] ?? '', // Nombre del campo según el backend
     );
   }
 }
